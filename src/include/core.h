@@ -16,7 +16,7 @@ typedef struct {
     uint8_t st;
     uint8_t dt;
     uint8_t sp;
-    uint8_t stack[STACK_SIZE];
+    uint16_t stack[STACK_SIZE];
     uint8_t memory[MEMORY_SIZE];
     uint8_t display[DISPLAY_HEIGHT * DISPLAY_WIDTH / 8];
 } Emu;
