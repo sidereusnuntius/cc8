@@ -18,10 +18,12 @@ typedef struct {
     uint8_t sp;
     uint8_t stack[STACK_SIZE];
     uint8_t memory[MEMORY_SIZE];
-    bool display[DISPLAY_HEIGHT * DISPLAY_WIDTH / 8];
+    uint8_t display[DISPLAY_HEIGHT * DISPLAY_WIDTH / 8];
 } Emu;
 
 Emu init();
 
 uint16_t pop(Emu *e);
 void push(Emu *e, uint16_t return_address);
+void tick(Emu *e);
+uint16_t fetch(Emu *e);
