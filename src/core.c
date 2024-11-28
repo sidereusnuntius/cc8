@@ -1,6 +1,9 @@
+#include <stdlib.h>
+#include <time.h>
 #include "include/core.h"
 
 Emu init() {
+    srand(time(NULL));
     Emu e = {
         .pc = PROGRAM_START,
         .memory = {
@@ -40,6 +43,29 @@ uint16_t fetch(Emu *e) {
     return instruction;
 }
 
+// TODO: allow sprites to wrap around the screen.
+void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
+    uint64_t temp, mask, result;
+    uint16_t addr = e->i_reg;
+    uint8_t vf = 0;
+    for (int i = 0; i < n; i++, y = (y + 1) % DISPLAY_HEIGHT) {
+        for (int shift = 0; shift < 8; shift++) {
+            mask = MASK >> ((x + shift) % DISPLAY_WIDTH);
+            temp = (e->memory[addr + i] & (0x80 >> shift)) ? mask : 0;
+            result = (e->display[y] ^ temp) & mask;
+            e->display[y] ^= result;
+            vf |= result != 0;
+        }
+    }
+
+    e->registers[0xF] = vf;
+
+    // for (int i = 0; i < n; i++, y++) {
+    //     for (int j = 0; j < 8; j++)
+    //         e->display[y * DISPLAY_WIDTH + x + j] = (e->memory[n + i] & (0x80 >> j)) ? true : false;
+    // }
+}
+
 void execute(Emu *e, uint16_t instruction) {
     switch (instruction & 0xF000) {
         case 0x1000:
@@ -64,20 +90,26 @@ void execute(Emu *e, uint16_t instruction) {
         case 0x7000: // 7xkk ADD Vx, kk
             e->registers[(instruction & 0x0F00) >> 8] += instruction & 0x00FF;
             break;
-        case 0x9000:
-            
+        case 0x9000: // 9xy0
+            if (e->registers[(instruction & 0x0F00) >> 8] != e->registers[(instruction & 0x00F0) >> 4]) e->pc += 2;
             break;
-        case 0xA000:
-            
+        case 0xA000: // annn
+            e->i_reg = instruction & 0x0FFF;
             break;
-        case 0xB000:
-            
+        case 0xB000: // bnnn: jump to v0 + nnn
+            e->pc = e->registers[0] + (instruction & 0x0FFF);
             break;
-        case 0xC000:
-            
+        case 0xC000: // cxkk
+            e->registers[(instruction & 0x0F00) >> 8] =
+                ((uint8_t) rand()) & (instruction & 0x00FF);
             break;
-        case 0xD000:
-            
+        case 0xD000: // dxyn
+            draw(
+                e,
+                e->registers[(instruction & 0x0F00) >> 8],
+                e->registers[(instruction & 0x00F0) >> 4],
+                instruction & 0x000F
+            );
             break;
         case 0xE000:
             

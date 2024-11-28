@@ -1,13 +1,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define NUM_REGISTERS     16
-#define MEMORY_SIZE     4096
-#define PROGRAM_START  0x200
-#define STACK_SIZE        16
+#define NUM_REGISTERS                   16
+#define MEMORY_SIZE                   4096
+#define PROGRAM_START                0x200
+#define STACK_SIZE                      16
 
-#define DISPLAY_WIDTH     64
-#define DISPLAY_HEIGHT    32
+#define DISPLAY_WIDTH                   64
+#define DISPLAY_HEIGHT                  32
+
+#define MASK            0x8000000000000000
 
 typedef struct {
     uint8_t registers[NUM_REGISTERS];
@@ -18,7 +20,8 @@ typedef struct {
     uint8_t sp;
     uint16_t stack[STACK_SIZE];
     uint8_t memory[MEMORY_SIZE];
-    uint8_t display[DISPLAY_HEIGHT * DISPLAY_WIDTH / 8];
+    uint64_t display[DISPLAY_HEIGHT];
+    // bool display[DISPLAY_HEIGHT * DISPLAY_WIDTH];
 } Emu;
 
 Emu init();
