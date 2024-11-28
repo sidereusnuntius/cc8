@@ -10,6 +10,7 @@
 #define DISPLAY_HEIGHT                  32
 
 #define MASK            0x8000000000000000
+#define MASK_16                     0x8000
 
 typedef struct {
     uint8_t registers[NUM_REGISTERS];
@@ -21,6 +22,7 @@ typedef struct {
     uint16_t stack[STACK_SIZE];
     uint8_t memory[MEMORY_SIZE];
     uint64_t display[DISPLAY_HEIGHT];
+    uint16_t keys;
     // bool display[DISPLAY_HEIGHT * DISPLAY_WIDTH];
 } Emu;
 

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "include/core.h"
 
@@ -66,8 +67,94 @@ void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
     // }
 }
 
+void cls(Emu *e) {
+    memset(e->display, 0, DISPLAY_HEIGHT * sizeof(uint64_t));
+}
+
+void operations(Emu *e, uint16_t instruction) {
+    uint8_t x = (instruction & 0x0F00) >> 8;
+    uint8_t y = (instruction & 0x00F0) >> 4;
+    switch (instruction & 0x000F) {
+        case 0x0:
+            e->registers[x] = e->registers[y];
+            break;
+        case 0x1:
+            e->registers[x] |= e->registers[y];
+            break;
+        case 0x2:
+            e->registers[x] &= e->registers[y];
+            break;
+        case 0x3:
+            e->registers[x] ^= e->registers[y];
+            break;
+        case 0x4:
+            e->registers[x] += e->registers[y];
+            e->registers[0xf] = e->registers[x] < e->registers[y];
+            break;
+        case 0x5:
+            e->registers[0xf] = e->registers[x] > e->registers[y];
+            e->registers[x] -= e->registers[y];
+            break;
+        case 0x6:
+            e->registers[0xf] = e->registers[x] & 1;
+            e->registers[x] /= 2;
+            break;
+        case 0x7:
+            e->registers[0xf] = e->registers[y] > e->registers[x];
+            e->registers[y] -= e->registers[x];
+            break;
+        case 0xE:
+            e->registers[0xf] = e->registers[x] & 1;
+            e->registers[x] *= 2;
+            break;
+    }
+}
+
+void f_operations(Emu *e, uint16_t instruction) {
+    uint8_t x = (instruction & 0x0f00) >> 8;
+    switch (instruction & 0x00ff) {
+        case 0x07:
+            e->registers[x] = e->dt;
+            break;
+        case 0x0A:
+            if (!e->keys) { e->pc -= 2; break; }
+            for (uint8_t i = 0; i < 16; i++) {
+                if ((MASK_16 >> i) == e->keys) e->registers[x] = i;
+            }
+            break;
+        case 0x15:
+            e->dt = e->registers[x];
+            break;
+        case 0x18:
+            e->st = e->registers[x];
+            break;
+        case 0x1e:
+            e->i_reg += e->registers[x];
+            break;
+        case 0x29:
+            e->i_reg = 5 * e->registers[x];
+            break;
+        case 0x33:
+            e->memory[e->i_reg] = e->registers[x] / 100;
+            e->memory[e->i_reg+1] = (e->registers[x] % 100) / 10;
+            e->memory[e->i_reg+2] = e->registers[x] % 10;
+            break;
+        case 0x55:
+            for (uint8_t i = 0; i <= x; i++)
+                e->memory[e->i_reg+i] = e->registers[i];
+            break;
+        case 0x65:
+            for (uint8_t i = 0; i <= x; i++)
+                e->registers[i] = e->memory[e->i_reg+i];
+            break;
+    }
+}
+
 void execute(Emu *e, uint16_t instruction) {
     switch (instruction & 0xF000) {
+        case 0x0000:
+            if (instruction & 0x000F) e->pc = pop(e);
+            else cls(e);
         case 0x1000:
             e->pc = instruction & 0x0FFF;
             break;
@@ -90,6 +177,9 @@ void execute(Emu *e, uint16_t instruction) {
         case 0x7000: // 7xkk ADD Vx, kk
             e->registers[(instruction & 0x0F00) >> 8] += instruction & 0x00FF;
             break;
+        case 0x8000:
+            operations(e, instruction);
+            break;
         case 0x9000: // 9xy0
             if (e->registers[(instruction & 0x0F00) >> 8] != e->registers[(instruction & 0x00F0) >> 4]) e->pc += 2;
             break;
@@ -111,8 +201,13 @@ void execute(Emu *e, uint16_t instruction) {
                 instruction & 0x000F
             );
             break;
-        case 0xE000:
-            
+        case 0xF000:
+            f_operations(e, instruction);
+            break;
+        case 0xE000: // ex9e
+            uint8_t key = e->registers[(instruction & 0x0F00) >> 8];
+            if (((instruction & 0x00FF) == 0x9E && (e->keys & (MASK_16 >> key))) ||
+                ((instruction & 0x00FF) == 0xA1 && !(e->keys & (MASK_16 >> key)))) { e->pc += 2; }
             break;
     }
 }

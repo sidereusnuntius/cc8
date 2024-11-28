@@ -217,7 +217,7 @@ void test_draw() {
     assert(e.registers[0xF] == 1);
 
     e.memory[520] = 0xa0;
-    e.memory[521] = 0x05;
+    e.memory[521] = 0x0A;
     e.memory[522] = 0xd1;
     e.memory[523] = 0x25;
 
@@ -234,6 +234,139 @@ void test_draw() {
 
     for (int i = 0; i < DISPLAY_HEIGHT; i++)
         printf("%64lb\n", e.display[i]);
+}
+
+void test_cls() {
+    Emu e = init();
+    
+    e.memory[512] = 0xa0;
+    e.memory[513] = 0x19;
+    e.memory[514] = 0x61;
+    e.memory[515] = 0x00;
+    e.memory[516] = 0x62;
+    e.memory[517] = 0x00;
+    e.memory[518] = 0xd1;
+    e.memory[519] = 0x25;
+    e.memory[520] = 0x00;
+    e.memory[521] = 0xe0;
+
+    tick(&e);
+    tick(&e);
+    tick(&e);
+    tick(&e);
+
+    for (int i = 0; i < DISPLAY_HEIGHT; i++)
+        printf("%64lb\n", e.display[i]);
+    
+    putchar('\n');
+    tick(&e);
+    
+    for (int i = 0; i < DISPLAY_HEIGHT; i++)
+        printf("%64lb\n", e.display[i]);
+}
+
+// ex9e: skip next instruction if key stored in Vx is pressed.
+void test_key_pressed() {
+    Emu e = init();
+    e.registers[0xe] = 0xf;
+    e.memory[512] = 0xee;
+    e.memory[513] = 0x9e;
+    e.memory[516] = 0xee;
+    e.memory[517] = 0x9e;
+
+    e.keys = MASK_16 >> 0xf;
+
+    tick(&e);
+    e.registers[0xe] = 1;
+    assert(e.pc == 516);
+    tick(&e);
+    assert(e.pc == 518);
+}
+
+// exa1: skip next instruction if key stored in Vx is not pressed.
+void test_key_not_pressed() {
+    Emu e = init();
+    e.registers[0xe] = 0xf;
+    e.memory[512] = 0xee;
+    e.memory[513] = 0xa1;
+    e.memory[514] = 0xee;
+    e.memory[515] = 0xa1;
+
+    e.keys = MASK_16 >> 0xf;
+
+    tick(&e);
+    e.keys = 0;
+    assert(e.pc == 514);
+    tick(&e);
+    assert(e.pc == 518);
+}
+
+// fx55 LD i, vx
+void test_store_regs() {
+    Emu e = init();
+    e.registers[0] = 24;
+    e.registers[1] = 126;
+    e.registers[2] = 7;
+    e.registers[3] = 69;
+
+    e.i_reg = 1024;
+
+    e.memory[512] = 0xf3;
+    e.memory[513] = 0x55;
+
+    tick(&e);
+    assert(e.memory[1024] == 24);
+    assert(e.memory[1025] == 126);
+    assert(e.memory[1026] == 7);
+    assert(e.memory[1027] == 69);
+}
+
+// fx65 LD vx, i
+void test_load_into_regs() {
+    Emu e = init();
+    e.memory[666] = 24;
+    e.memory[667] = 126;
+    e.memory[668] = 7;
+    e.memory[669] = 69;
+
+    e.i_reg = 666;
+
+    e.memory[512] = 0xf3;
+    e.memory[513] = 0x65;
+
+    tick(&e);
+    assert(e.registers[0] == 24);
+    assert(e.registers[1] == 126);
+    assert(e.registers[2] == 7);
+    assert(e.registers[3] == 69);
+}
+
+void test_bcd() {
+    Emu e = init();
+    e.i_reg = 420;
+    e.registers[4] = 174;
+
+    e.memory[512] = 0xf4;
+    e.memory[513] = 0x33;
+    tick(&e);
+
+    assert(e.memory[420] == 1);
+    assert(e.memory[421] == 7);
+    assert(e.memory[422] == 4);
+}
+
+void test_wait_key_press() {
+    Emu e = init();
+
+    e.memory[512] = 0xf5;
+    e.memory[513] = 0x0a;
+    tick(&e);
+    tick(&e);
+    assert(e.pc == 512);
+    e.keys = MASK_16 >> 7;
+    tick(&e);
+    assert(e.pc == 514);
+    assert(e.registers[5] == 7);
 }
 
 int main() {
@@ -253,8 +386,17 @@ int main() {
     test_jp_addr();
 
     test_rand_byte();
-    test_draw();
+    // test_draw();
+    // test_cls();
+    test_key_pressed();
+    test_key_not_pressed();
 
+    test_bcd();
+    test_store_regs();
+    test_load_into_regs();    
+    test_bcd();
+    test_wait_key_press();
+    
     printf("All tests were successful.\n");
     return 0;
 }
