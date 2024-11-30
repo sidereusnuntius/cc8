@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -44,12 +45,14 @@ uint16_t fetch(Emu *e) {
     return instruction;
 }
 
-// TODO: allow sprites to wrap around the screen.
+// TODO: the sprites should not be just pasted into the screen. Instead, they should simply be XORed into the display,
+// which allows games to destroy sprites.s
 void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
     uint64_t temp, mask, result;
     uint16_t addr = e->i_reg;
     uint8_t vf = 0;
-    for (int i = 0; i < n; i++, y = (y + 1) % DISPLAY_HEIGHT) {
+    for (int i = 0; i < n; i++, y++) {
+        y %= DISPLAY_HEIGHT;
         for (int shift = 0; shift < 8; shift++) {
             mask = MASK >> ((x + shift) % DISPLAY_WIDTH);
             temp = (e->memory[addr + i] & (0x80 >> shift)) ? mask : 0;
@@ -104,7 +107,7 @@ void operations(Emu *e, uint16_t instruction) {
             e->registers[y] -= e->registers[x];
             break;
         case 0xE:
-            e->registers[0xf] = e->registers[x] & 1;
+            e->registers[0xf] = e->registers[x] >> 7;
             e->registers[x] *= 2;
             break;
     }
@@ -151,10 +154,13 @@ void f_operations(Emu *e, uint16_t instruction) {
 }
 
 void execute(Emu *e, uint16_t instruction) {
+    // printf("%u: %x\n", e->pc-2, instruction);
+    e->registers[0xf] = 0;
     switch (instruction & 0xF000) {
         case 0x0000:
             if (instruction & 0x000F) e->pc = pop(e);
-            else cls(e);
+            else if ((instruction & 0x00F0) == 0x00E0) cls(e);
+            break;
         case 0x1000:
             e->pc = instruction & 0x0FFF;
             break;
@@ -215,4 +221,9 @@ void execute(Emu *e, uint16_t instruction) {
 void tick(Emu *e) {
     uint16_t instruction = fetch(e);
     execute(e, instruction);
+}
+
+void decrement_timers(Emu *e) {
+    if (e->st) e->st--;
+    if (e->dt) e->dt--;
 }

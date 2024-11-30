@@ -12,6 +12,8 @@
 #define MASK            0x8000000000000000
 #define MASK_16                     0x8000
 
+#define PIXEL_SIZE                      10
+
 typedef struct {
     uint8_t registers[NUM_REGISTERS];
     uint16_t pc;
@@ -32,3 +34,4 @@ uint16_t pop(Emu *e);
 void push(Emu *e, uint16_t return_address);
 void tick(Emu *e);
 uint16_t fetch(Emu *e);
+void decrement_timers(Emu *e);
