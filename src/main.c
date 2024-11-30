@@ -8,15 +8,6 @@
 #include "SDL2/SDL_timer.h"
 #include "include/core.h"
 
-void *decrement_registers(void *arguments) { 
-    Emu *e = (Emu*) arguments;
-    while (1) {
-        SDL_Delay(20);
-        if (e->dt) e->dt--;
-        if (e->st) e->st--;
-    }
-}
-
 Emu start(char *filename) {
     FILE *rom = fopen(filename, "r");
 
@@ -54,8 +45,6 @@ void draw_screen(Emu *e, SDL_Renderer *renderer) {
                 
                 SDL_RenderFillRect(renderer, &point);
             }
-
-    // SDL_SetRenderDrawColor(renderer, 0, 0, 0 , 255);
     
     SDL_RenderPresent(renderer);
 }
@@ -105,8 +94,6 @@ int main(int argc, char *argv[]) {
         window,
         -1,
         0);
-    // pthread_t threads[1];
-    // pthread_create(&threads[0], NULL, decrement_registers, &e);
 
     SDL_Event event;
     
@@ -130,4 +117,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-// 87 vx

@@ -45,12 +45,8 @@ uint16_t fetch(Emu *e) {
     return instruction;
 }
 
-// TODO: the sprites should not be just pasted into the screen. Instead, they should simply be XORed into the display,
-// which allows games to destroy sprites.s
 void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
-    uint64_t temp, mask, result;
     uint16_t addr = e->i_reg;
-    uint8_t vf = 0;
     uint8_t flipped = 0;
     for (int i = 0; i < n; i++, y++) {
         y %= DISPLAY_HEIGHT;
@@ -59,11 +55,6 @@ void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
                 e->display[y] ^= MASK >> ((x + shift) % DISPLAY_WIDTH);
                 flipped = 1;
             }
-            mask = MASK >> ((x + shift) % DISPLAY_WIDTH);
-            // temp = (e->memory[addr + i] & (0x80 >> shift)) ? mask : 0;
-            // result = (e->display[y] ^ temp) & mask;
-            // e->display[y] ^= result;
-            // vf |= result != 0;
         }
     }
 
@@ -71,11 +62,6 @@ void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
         e->registers[0xf] = 1;
         e->display_update = true;
     }
-
-    // for (int i = 0; i < n; i++, y++) {
-    //     for (int j = 0; j < 8; j++)
-    //         e->display[y * DISPLAY_WIDTH + x + j] = (e->memory[n + i] & (0x80 >> j)) ? true : false;
-    // }
 }
 
 void cls(Emu *e) {
@@ -168,7 +154,6 @@ void f_operations(Emu *e, uint16_t instruction) {
 }
 
 void execute(Emu *e, uint16_t instruction) {
-    // printf("%u: %x\n", e->pc-2, instruction);
     switch (instruction & 0xF000) {
         case 0x0000:
             if (instruction & 0x000F) e->pc = pop(e);
