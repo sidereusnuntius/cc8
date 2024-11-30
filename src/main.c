@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
         
         draw_screen(&e, renderer);
         decrement_timers(&e);
-        SDL_Delay(15);
+        SDL_Delay(10);
     }
     SDL_Quit();
 
