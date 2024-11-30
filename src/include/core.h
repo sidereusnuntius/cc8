@@ -25,6 +25,7 @@ typedef struct {
     uint8_t memory[MEMORY_SIZE];
     uint64_t display[DISPLAY_HEIGHT];
     uint16_t keys;
+    bool display_update;
     // bool display[DISPLAY_HEIGHT * DISPLAY_WIDTH];
 } Emu;
 

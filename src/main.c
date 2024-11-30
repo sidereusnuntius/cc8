@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_keycode.h"
 #include "SDL2/SDL_timer.h"
@@ -104,26 +105,29 @@ int main(int argc, char *argv[]) {
         window,
         -1,
         0);
-    pthread_t threads[1];
-    pthread_create(&threads[0], NULL, decrement_registers, &e);
+    // pthread_t threads[1];
+    // pthread_create(&threads[0], NULL, decrement_registers, &e);
 
     SDL_Event event;
-
+    
     while (1) {
         if (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) break;
-            else if (event.type == SDL_KEYDOWN){
+            else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) break;
                 e.keys = MASK_16 >> get_key(event.key.keysym);
-            }
+            } else if (event.type == SDL_KEYUP) e.keys = 0;
         }
-
-        // for (int i = 0; i < 10; i++)
-        tick(&e);
-        // SDL_Delay(5);
+        
+        for (int i = 0; i < 15; i++)
+            tick(&e);
+        
         draw_screen(&e, renderer);
-        // decrement_timers(&e);
+        decrement_timers(&e);
+        SDL_Delay(15);
     }
     SDL_Quit();
 
     return 0;
 }
+// 87 vx

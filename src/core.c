@@ -51,18 +51,26 @@ void draw(Emu *e, uint8_t x, uint8_t y, uint8_t n) {
     uint64_t temp, mask, result;
     uint16_t addr = e->i_reg;
     uint8_t vf = 0;
+    uint8_t flipped = 0;
     for (int i = 0; i < n; i++, y++) {
         y %= DISPLAY_HEIGHT;
         for (int shift = 0; shift < 8; shift++) {
+            if (e->memory[addr + i] & (0x80 >> shift)) {
+                e->display[y] ^= MASK >> ((x + shift) % DISPLAY_WIDTH);
+                flipped = 1;
+            }
             mask = MASK >> ((x + shift) % DISPLAY_WIDTH);
-            temp = (e->memory[addr + i] & (0x80 >> shift)) ? mask : 0;
-            result = (e->display[y] ^ temp) & mask;
-            e->display[y] ^= result;
-            vf |= result != 0;
+            // temp = (e->memory[addr + i] & (0x80 >> shift)) ? mask : 0;
+            // result = (e->display[y] ^ temp) & mask;
+            // e->display[y] ^= result;
+            // vf |= result != 0;
         }
     }
 
-    e->registers[0xF] = vf;
+    if (flipped) {
+        e->registers[0xf] = 1;
+        e->display_update = true;
+    }
 
     // for (int i = 0; i < n; i++, y++) {
     //     for (int j = 0; j < 8; j++)
@@ -77,6 +85,8 @@ void cls(Emu *e) {
 void operations(Emu *e, uint16_t instruction) {
     uint8_t x = (instruction & 0x0F00) >> 8;
     uint8_t y = (instruction & 0x00F0) >> 4;
+    
+    uint8_t flag = 0;
     switch (instruction & 0x000F) {
         case 0x0:
             e->registers[x] = e->registers[y];
@@ -95,20 +105,24 @@ void operations(Emu *e, uint16_t instruction) {
             e->registers[0xf] = e->registers[x] < e->registers[y];
             break;
         case 0x5:
-            e->registers[0xf] = e->registers[x] > e->registers[y];
+            flag = e->registers[x] >= e->registers[y];
             e->registers[x] -= e->registers[y];
+            e->registers[0xf] = flag;
             break;
         case 0x6:
-            e->registers[0xf] = e->registers[x] & 1;
+            flag = e->registers[x] & 1;
             e->registers[x] /= 2;
+            e->registers[0xf] = flag;
             break;
         case 0x7:
-            e->registers[0xf] = e->registers[y] > e->registers[x];
-            e->registers[y] -= e->registers[x];
+            flag = e->registers[y] >= e->registers[x];
+            e->registers[x] =  e->registers[y] - e->registers[x];
+            e->registers[0xf] = flag;
             break;
         case 0xE:
-            e->registers[0xf] = e->registers[x] >> 7;
+            flag = e->registers[x] >> 7;
             e->registers[x] *= 2;
+            e->registers[0xf] = flag;
             break;
     }
 }
@@ -155,7 +169,6 @@ void f_operations(Emu *e, uint16_t instruction) {
 
 void execute(Emu *e, uint16_t instruction) {
     // printf("%u: %x\n", e->pc-2, instruction);
-    e->registers[0xf] = 0;
     switch (instruction & 0xF000) {
         case 0x0000:
             if (instruction & 0x000F) e->pc = pop(e);
@@ -219,6 +232,7 @@ void execute(Emu *e, uint16_t instruction) {
 }
 
 void tick(Emu *e) {
+    e->display_update = false;
     uint16_t instruction = fetch(e);
     execute(e, instruction);
 }
